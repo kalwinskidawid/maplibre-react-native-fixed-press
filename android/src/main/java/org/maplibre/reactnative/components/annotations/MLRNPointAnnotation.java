@@ -222,6 +222,9 @@ public class MLRNPointAnnotation extends AbstractMapFeature implements View.OnLa
         if (shouldSendEvent) {
             mManager.handleEvent(makeEvent(true));
         }
+        if (mCalloutSymbol != null) {
+            mMapView.getSymbolManager().delete(mCalloutSymbol);
+        }
     }
 
     public void onDeselect() {
