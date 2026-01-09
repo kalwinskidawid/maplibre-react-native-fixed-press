@@ -575,6 +575,16 @@ open class MLRNMapView(
             }
         }
 
+        // If the user tapped the map (not an annotation or touchable source)
+        // and there is an active annotation, deselect it here so `activeMarkerID`
+        // is cleared and the native selection state stays consistent.
+        if (activeMarkerID != -1L) {
+            val activeAnnotation = getPointAnnotationByMarkerID(activeMarkerID)
+            if (activeAnnotation != null) {
+                deselectAnnotation(activeAnnotation)
+            }
+        }
+
         val event = MapPressEvent(surfaceId, id, "onPress", latLng, screenPoint)
         eventDispatcher?.dispatchEvent(event)
 
