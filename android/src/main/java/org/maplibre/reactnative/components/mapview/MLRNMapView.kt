@@ -608,6 +608,15 @@ open class MLRNMapView(
         annotationClicked = true
         val selectedMarkerID = symbol.id
 
+        // If clicking the same point that is already active, just emit select event again
+        if (selectedMarkerID == activeMarkerID) {
+            val activeAnnotation = getPointAnnotationByMarkerID(activeMarkerID)
+            if (activeAnnotation != null) {
+                activeAnnotation.onSelect(true)
+            }
+            return
+        }
+
         var activeAnnotation: MLRNPointAnnotation? = null
         var nextActiveAnnotation: MLRNPointAnnotation? = null
 
