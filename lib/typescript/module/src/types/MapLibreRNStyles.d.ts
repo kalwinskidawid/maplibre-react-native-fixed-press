@@ -12,8 +12,7 @@ export type ExpressionName = "array" | "boolean" | "collator" | "format" | "imag
 export type ExpressionField = string | number | boolean | Expression | ExpressionField[] | {
     [key: string]: ExpressionField;
 };
-export type Expression = readonly [ExpressionName, ...ExpressionField[]];
-export type FilterExpression = Expression;
+export type Expression = [ExpressionName, ...ExpressionField[]];
 type ExpressionParameters = "zoom" | "feature" | "feature-state" | "sky-radial-progress" | "line-progress" | "heatmap-density";
 type ResolvedImageType = ImageSourcePropType | string;
 export type Value<T, AllowedParameters extends ExpressionParameters[] = []> = T | Expression;

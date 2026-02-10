@@ -5,11 +5,11 @@
 #import "FilterParser.h"
 #import "MLRNEvent.h"
 #import "MLRNEventTypes.h"
+#import "MLRNGeoJSONSource.h"
 #import "MLRNImages.h"
 #import "MLRNMapTouchEvent.h"
 #import "MLRNMapView.h"
 #import "MLRNMapViewManager.h"
-#import "MLRNShapeSource.h"
 #import "MLRNUserLocation.h"
 #import "MLRNUtils.h"
 
@@ -91,10 +91,10 @@
   resolve(@[ @(coordinate.longitude), @(coordinate.latitude) ]);
 }
 
-+ (void)takeSnap:(MLRNMapView *)view
-     writeToDisk:(BOOL)writeToDisk
-         resolve:(RCTPromiseResolveBlock)resolve
-          reject:(RCTPromiseRejectBlock)reject {
++ (void)createStaticMapImage:(MLRNMapView *)view
+                 writeToDisk:(BOOL)writeToDisk
+                     resolve:(RCTPromiseResolveBlock)resolve
+                      reject:(RCTPromiseRejectBlock)reject {
   NSString *uri = [view takeSnap:writeToDisk];
   resolve(uri);
 }

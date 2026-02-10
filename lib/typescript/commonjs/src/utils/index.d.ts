@@ -1,4 +1,4 @@
-import { Children, Component, type ReactElement } from "react";
+import { Component, type ReactElement, type ReactNode } from "react";
 import { type ImageSourcePropType } from "react-native";
 export declare function isAndroid(): boolean;
 export declare function isFunction(fn: unknown): fn is Function;
@@ -10,9 +10,9 @@ export type NativeArg = string | number | boolean | null | {
     [k: string]: NativeArg;
 } | NativeArg[];
 export declare function runNativeCommand<ReturnType = NativeArg>(module: string, name: string, nativeRef: Component, args?: NativeArg[]): ReturnType;
-export declare function cloneReactChildrenWithProps(children: Parameters<typeof Children.map>[0], propsToAdd?: {
+export declare function cloneReactChildrenWithProps(children: ReactNode, propsToAdd?: {
     [key: string]: string;
-}): ReactElement[] | undefined;
+}): ReactElement[] | null;
 export declare function resolveImagePath(imageRef: ImageSourcePropType): string;
 export declare function toJSONString(json?: object | string): string;
 //# sourceMappingURL=index.d.ts.map

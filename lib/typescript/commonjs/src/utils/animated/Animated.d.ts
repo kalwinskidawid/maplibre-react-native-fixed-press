@@ -1,21 +1,21 @@
+import type { ComponentType } from "react";
 import { Animated as RNAnimated } from "react-native";
 import { AnimatedCoordinatesArray } from "./AnimatedCoordinatesArray";
 import { AnimatedExtractCoordinateFromArray } from "./AnimatedExtractCoordinateFromArray";
+import { AnimatedGeoJSON } from "./AnimatedGeoJSON";
+import { AnimatedPoint } from "./AnimatedPoint";
 import { AnimatedRouteCoordinatesArray } from "./AnimatedRouteCoordinatesArray";
-import { AnimatedShape } from "./AnimatedShape";
 export declare const Animated: {
-    ShapeSource: RNAnimated.AnimatedComponent<import("react").NamedExoticComponent<import("../../components/sources/ShapeSource").ShapeSourceProps & import("react").RefAttributes<import("../..").ShapeSourceRef>>>;
-    ImageSource: RNAnimated.AnimatedComponent<(props: import("../../components/sources/ImageSource").ImageSourceProps) => import("react/jsx-runtime").JSX.Element | null>;
-    FillLayer: RNAnimated.AnimatedComponent<({ sourceID, ...props }: import("../../components/layers/FillLayer").FillLayerProps) => import("react/jsx-runtime").JSX.Element>;
-    FillExtrusionLayer: RNAnimated.AnimatedComponent<({ sourceID, ...props }: import("../../components/layers/FillExtrusionLayer").FillExtrusionLayerProps) => import("react/jsx-runtime").JSX.Element>;
-    LineLayer: RNAnimated.AnimatedComponent<({ sourceID, ...props }: import("../../components/layers/LineLayer").LineLayerProps) => import("react/jsx-runtime").JSX.Element>;
-    CircleLayer: RNAnimated.AnimatedComponent<({ sourceID, ...props }: import("../../components/layers/CircleLayer").CircleLayerProps) => import("react/jsx-runtime").JSX.Element>;
-    SymbolLayer: RNAnimated.AnimatedComponent<({ sourceID, ...props }: import("../../components/layers/SymbolLayer").SymbolLayerProps) => import("react/jsx-runtime").JSX.Element>;
-    RasterLayer: RNAnimated.AnimatedComponent<({ sourceID, ...props }: import("../../components/layers/RasterLayer").RasterLayerProps) => import("react/jsx-runtime").JSX.Element>;
-    BackgroundLayer: RNAnimated.AnimatedComponent<({ sourceID, ...props }: import("../../components/layers/BackgroundLayer").BackgroundLayerProps) => import("react/jsx-runtime").JSX.Element>;
+    GeoJSONSource: RNAnimated.AnimatedComponent<ComponentType<Omit<import("../..").GeoJSONSourceProps & import("react").RefAttributes<import("../..").GeoJSONSourceRef>, "data"> & {
+        data: string | GeoJSON.GeoJSON | AnimatedGeoJSON;
+    }>>;
+    ImageSource: RNAnimated.AnimatedComponent<import("react").MemoExoticComponent<({ id, url, ...props }: import("../..").ImageSourceProps) => import("react/jsx-runtime").JSX.Element>>;
+    Marker: RNAnimated.AnimatedComponent<({ id, anchor, offset, ...props }: import("../..").MarkerProps) => import("react/jsx-runtime").JSX.Element>;
+    Layer: RNAnimated.AnimatedComponent<({ id, ...props }: import("../..").LayerProps) => import("react/jsx-runtime").JSX.Element>;
+    Point: typeof AnimatedPoint;
     CoordinatesArray: typeof AnimatedCoordinatesArray;
     RouteCoordinatesArray: typeof AnimatedRouteCoordinatesArray;
-    Shape: typeof AnimatedShape;
+    GeoJSON: typeof AnimatedGeoJSON;
     ExtractCoordinateFromArray: typeof AnimatedExtractCoordinateFromArray;
 };
 //# sourceMappingURL=Animated.d.ts.map

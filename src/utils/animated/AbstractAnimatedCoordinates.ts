@@ -1,15 +1,6 @@
 import { Animated } from "react-native";
 
-// https://github.com/facebook/react-native/blob/main/packages/react-native/Libraries/Animated/nodes/AnimatedWithChildren.js
 const AnimatedWithChildren = Object.getPrototypeOf(Animated.ValueXY);
-
-if (__DEV__) {
-  if (AnimatedWithChildren.name !== "AnimatedWithChildren") {
-    console.error(
-      "AnimatedCoordinatesArray could not obtain AnimatedWithChildren base class",
-    );
-  }
-}
 
 export type AnimatedCoordinates = [number, number];
 
@@ -30,18 +21,26 @@ export abstract class AbstractAnimatedCoordinates<
   /**
    * Subclasses can override to calculate initial state
    *
-   * @returns {object} - the state object
-   * @param coordinates
+   * @returns the state object
    */
-  abstract onInitialState(coordinates: AnimatedCoordinates[]): State;
+  protected abstract onInitialState(coordinates: AnimatedCoordinates[]): State;
+
   /**
    * Calculates state based on startingState and progress, returns a new state
    *
-   * @param {object} state - state object from initialState and/or from calculate
-   * @param {number} progress - value between 0 and 1
-   * @returns {object} next state
+   * @param state - state object from initialState and/or from calculate
+   * @param progress - value between 0 and 1
+   * @returns next state
    */
-  abstract onCalculate(state: State, progress: number): State;
+  protected abstract onCalculate(state: State, progress: number): State;
+
+  /**
+   * Subclasses can override getValue to calculate value from state.
+   * Value is typically coordinates array, but can be anything
+   *
+   * @param state - either state from initialState and/or from calculate
+   */
+  protected abstract onGetValue(state: State): AnimatedCoordinates[];
 
   animate(
     progressValue: Animated.Value,
@@ -138,6 +137,7 @@ export abstract class AbstractAnimatedCoordinates<
     if (!this.progressValue) {
       return this.onGetValue(this.state);
     }
+
     return this.onGetValue(
       this.onCalculate(this.state, this.progressValue.__getValue()),
     );

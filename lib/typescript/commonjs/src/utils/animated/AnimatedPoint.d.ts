@@ -1,27 +1,28 @@
 import { Animated } from "react-native";
-declare const AnimatedWithChildren: any;
+type AnimatedPointValueIn = GeoJSON.Point | {
+    type: "Point";
+    coordinates: Animated.AnimatedValue[];
+};
+declare const AnimatedWithChildren: typeof Animated.AnimatedWithChildren;
 export declare class AnimatedPoint extends AnimatedWithChildren {
-    constructor(point?: {
-        type: string;
-        coordinates: number[];
-    });
-    setValue(point?: {
-        type: string;
-        coordinates: number[];
-    }): void;
-    setOffset(point?: {
-        type: string;
-        coordinates: number[];
-    }): void;
+    longitude: Animated.Value;
+    latitude: Animated.Value;
+    _lngLatListeners: Record<string, {
+        longitude: string;
+        latitude: string;
+    }>;
+    constructor(valueIn?: AnimatedPointValueIn);
+    setValue(value: GeoJSON.Point): void;
+    setOffset(offset: GeoJSON.Point): void;
     flattenOffset(): void;
-    stopAnimation(cb?: (value: GeoJSON.Point) => void): void;
-    addListener(cb?: (value: GeoJSON.Point) => void): string;
+    stopAnimation(callback?: (value: GeoJSON.Point) => void): void;
+    addListener(callback?: (value: GeoJSON.Point) => void): string;
     removeListener(id: string): void;
-    spring(config?: Partial<Animated.TimingAnimationConfig> & {
-        coordinates: GeoJSON.Position;
+    spring({ toValue, ...config }: Omit<Animated.SpringAnimationConfig, "useNativeDriver" | "toValue"> & {
+        toValue: GeoJSON.Point;
     }): Animated.CompositeAnimation;
-    timing(config?: Partial<Animated.TimingAnimationConfig> & {
-        coordinates: GeoJSON.Position;
+    timing({ toValue, ...config }: Omit<Animated.TimingAnimationConfig, "useNativeDriver" | "toValue"> & {
+        toValue: GeoJSON.Point;
     }): Animated.CompositeAnimation;
     __getValue(): GeoJSON.Point;
     __attach(): void;

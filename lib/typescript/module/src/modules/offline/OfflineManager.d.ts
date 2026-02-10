@@ -1,31 +1,37 @@
-import { NativeEventEmitter, type EventSubscription } from "react-native";
-import { type OfflineCreatePackInputOptions } from "./OfflineCreatePackOptions";
 import { OfflinePack, type OfflinePackStatus } from "./OfflinePack";
-export declare const OfflineModuleEventEmitter: NativeEventEmitter;
+import type { LngLatBounds } from "../../types/LngLatBounds";
+export interface OfflinePackCreateOptions {
+    mapStyle: string;
+    bounds: LngLatBounds;
+    minZoom?: number;
+    maxZoom?: number;
+    /**
+     * User-provided metadata object.
+     */
+    metadata?: Record<string, unknown>;
+}
+/**
+ * Represents the offline pack download state
+ */
+export type OfflinePackDownloadState = "inactive" | "active" | "complete";
 export type OfflinePackError = {
-    name: string;
+    id: string;
     message: string;
 };
-type ErrorEvent = {
-    payload: OfflinePackError;
-};
-type ProgressEvent = {
-    payload: OfflinePackStatus;
-};
-type ProgressListener = (pack: OfflinePack, status: OfflinePackStatus) => void;
-type ErrorListener = (pack: OfflinePack, err: OfflinePackError) => void;
+export type OfflinePackProgressListener = (offlinePack: OfflinePack, status: OfflinePackStatus) => void;
+export type OfflinePackErrorListener = (offlinePack: OfflinePack, error: OfflinePackError) => void;
 /**
  * OfflineManager implements a singleton (shared object) that manages offline packs.
- * All of this class’s instance methods are asynchronous, reflecting the fact that offline resources are stored in a database.
+ * All of this class's instance methods are asynchronous, reflecting the fact that offline resources are stored in a database.
  * The shared object maintains a canonical collection of offline packs.
  */
 declare class OfflineManager {
-    _hasInitialized: boolean;
-    _offlinePacks: Record<string, OfflinePack>;
-    _progressListeners: Record<string, ProgressListener>;
-    _errorListeners: Record<string, ErrorListener>;
-    subscriptionProgress: EventSubscription | null;
-    subscriptionError: EventSubscription | null;
+    private initialized;
+    private readonly offlinePacks;
+    private readonly progressListeners;
+    private readonly errorListeners;
+    private subscriptionProgress;
+    private subscriptionError;
     constructor();
     /**
      * Creates and registers an offline pack that downloads the resources needed to use the given region offline.
@@ -33,44 +39,43 @@ declare class OfflineManager {
      * @example
      *
      * const progressListener = (offlineRegion, status) => console.log(offlineRegion, status);
-     * const errorListener = (offlineRegion, err) => console.log(offlineRegion, err);
+     * const errorListener = (offlineRegion, error) => console.log(offlineRegion, error);
      *
-     * await OfflineManager.createPack({
-     *   name: 'offlinePack',
-     *   styleURL: 'https://demotiles.maplibre.org/tiles/tiles.json',
+     * const offlinePack = await OfflineManager.createPack({
+     *   mapStyle: 'https://demotiles.maplibre.org/tiles/tiles.json',
      *   minZoom: 14,
      *   maxZoom: 20,
-     *   bounds: [[neLng, neLat], [swLng, swLat]]
+     *   bounds: [west, south, east, north],
+     *   metadata: { customValue: 'myValue' }
      * }, progressListener, errorListener)
      *
-     * @param  {OfflineCreatePackOptions} options Create options for a offline pack that specifices zoom levels, style url, and the region to download.
-     * @param  {ProgressListener} progressListener Callback that listens for status events while downloading the offline resource.
-     * @param  {ErrorListener} errorListener Callback that listens for status events while downloading the offline resource.
-     * @return {void}
+     * @param options Create options for offline pack that specifies zoom levels, style url, and the region to download.
+     * @param  progressListener Callback that listens for status events while downloading the offline resource.
+     * @param  errorListener Callback that listens for status events while downloading the offline resource.
+     *
+     * @return The created offline pack with its generated ID.
      */
-    createPack(options: OfflineCreatePackInputOptions, progressListener: ProgressListener, errorListener: ErrorListener): Promise<void>;
+    createPack(options: OfflinePackCreateOptions, progressListener: OfflinePackProgressListener, errorListener: OfflinePackErrorListener): Promise<OfflinePack>;
     /**
      * Invalidates the specified offline pack. This method checks that the tiles in the specified offline pack match those from the server. Local tiles that do not match the latest version on the server are updated.
      *
      * This is more efficient than deleting the offline pack and downloading it again. If the data stored locally matches that on the server, new data will not be downloaded.
      *
      * @example
-     * await OfflineManager.invalidatePack('packName')
+     * await OfflineManager.invalidatePack(pack.id)
      *
-     * @param  {string}  name  Name of the offline pack.
-     * @return {void}
+     * @param id ID of the OfflinePack.
      */
-    invalidatePack(name: string): Promise<void>;
+    invalidatePack(id: string): Promise<void>;
     /**
-     * Unregisters the given offline pack and allows resources that are no longer required by any remaining packs to be potentially freed.
+     * Unregisters the given OfflinePack and allows resources that are no longer required by any remaining packs to be potentially freed.
      *
      * @example
-     * await OfflineManager.deletePack('packName')
+     * await OfflineManager.deletePack(pack.id)
      *
-     * @param  {string}  name  Name of the offline pack.
-     * @return {void}
+     * @param id  ID of the OfflinePack.
      */
-    deletePack(name: string): Promise<void>;
+    deletePack(id: string): Promise<void>;
     /**
      * Forces a revalidation of the tiles in the ambient cache and downloads a fresh version of the tiles from the tile server.
      * This is the recommend method for clearing the cache.
@@ -79,8 +84,6 @@ declare class OfflineManager {
      *
      * @example
      * await OfflineManager.invalidateAmbientCache();
-     *
-     * @return {void}
      */
     invalidateAmbientCache(): Promise<void>;
     /**
@@ -89,8 +92,6 @@ declare class OfflineManager {
      *
      * @example
      * await OfflineManager.clearAmbientCache();
-     *
-     * @return {void}
      */
     clearAmbientCache(): Promise<void>;
     /**
@@ -100,8 +101,7 @@ declare class OfflineManager {
      * @example
      * await OfflineManager.setMaximumAmbientCacheSize(5000000);
      *
-     * @param  {number}  size  Size of ambient cache.
-     * @return {void}
+     * @param    size  Size of ambient cache.
      */
     setMaximumAmbientCacheSize(size: number): Promise<void>;
     /**
@@ -109,8 +109,6 @@ declare class OfflineManager {
      *
      * @example
      * await OfflineManager.resetDatabase();
-     *
-     * @return {void}
      */
     resetDatabase(): Promise<void>;
     /**
@@ -118,28 +116,22 @@ declare class OfflineManager {
      *
      * @example
      * const offlinePacks = await OfflineManager.getPacks();
-     *
-     * @return {Array<OfflinePack>}
      */
     getPacks(): Promise<OfflinePack[]>;
     /**
-     * Retrieves an offline pack that is stored in the database by name.
+     * Retrieves an offline pack that is stored in the database by ID.
      *
      * @example
-     * const offlinePack = await OfflineManager.getPack();
-     *
-     * @param  {string}  name  Name of the offline pack.
-     * @return {OfflinePack}
+     * const offlinePack = await OfflineManager.getPack(offlinePack.id);
      */
-    getPack(name: string): Promise<OfflinePack | undefined>;
+    getPack(id: string): Promise<OfflinePack>;
     /**
      * Sideloads offline db
      *
      * @example
      * await OfflineManager.mergeOfflineRegions(path);
      *
-     * @param {string} path Path to offline tile db on file system.
-     * @return {void}
+     * @param path Path to offline tile db on file system.
      */
     mergeOfflineRegions(path: string): Promise<void>;
     /**
@@ -149,8 +141,7 @@ declare class OfflineManager {
      * @example
      * OfflineManager.setTileCountLimit(1000);
      *
-     * @param {number} limit Map tile limit count.
-     * @return {void}
+     * @param limit Map tile limit count.
      */
     setTileCountLimit(limit: number): void;
     /**
@@ -160,8 +151,7 @@ declare class OfflineManager {
      * @example
      * OfflineManager.setProgressEventThrottle(500);
      *
-     * @param {number} throttleValue event throttle value in ms.
-     * @return {void}
+     * @param throttleValue Event throttle value in ms.
      */
     setProgressEventThrottle(throttleValue: number): void;
     /**
@@ -170,30 +160,31 @@ declare class OfflineManager {
      *
      * @example
      * const progressListener = (offlinePack, status) => console.log(offlinePack, status)
-     * const errorListener = (offlinePack, err) => console.log(offlinePack, err)
-     * OfflineManager.subscribe('packName', progressListener, errorListener)
+     * const errorListener = (offlinePack, error) => console.log(offlinePack, error)
+     * OfflineManager.addListener(pack.id, progressListener, errorListener)
      *
-     * @param  {string} packName           Name of the offline pack.
-     * @param  {ProgressListener} progressListener Callback that listens for status events while downloading the offline resource.
-     * @param  {ErrorListener} errorListener      Callback that listens for status events while downloading the offline resource.
-     * @return {void}
+     * @param  id           ID of the offline pack.
+     * @param  progressListener Callback that listens for status events while downloading the offline resource.
+     * @param  errorListener      Callback that listens for status events while downloading the offline resource.
      */
-    subscribe(packName: string, progressListener: ProgressListener, errorListener: ErrorListener): Promise<void>;
+    addListener(id: string, progressListener: OfflinePackProgressListener, errorListener: OfflinePackErrorListener): Promise<void>;
     /**
      * Unsubscribes any listeners associated with the offline pack.
-     * It's a good idea to call this on componentWillUnmount.
+     * Should be called when the component unmounts.
      *
      * @example
-     * OfflineManager.unsubscribe('packName')
+     * useEffect(() => {
+     *   return () => {
+     *     OfflineManager.removeListener(pack.id);
+     *   }
+     * }, []);
      *
-     * @param  {string} packName Name of the offline pack.
-     * @return {void}
+     * @param packId ID of the offline pack.
      */
-    unsubscribe(packName: string): void;
-    _initialize(): Promise<boolean>;
-    _onProgress(e: ProgressEvent): void;
-    _onError(e: ErrorEvent): void;
-    _hasListeners(name: string, listenerMap: Record<string, ProgressListener> | Record<string, ErrorListener>): boolean;
+    removeListener(packId: string): void;
+    private initialize;
+    private handleProgress;
+    private onError;
 }
 declare const offlineManager: OfflineManager;
 export { offlineManager as OfflineManager };

@@ -1,5 +1,6 @@
 import { type NativeSyntheticEvent } from "react-native";
 import { type BaseProps } from "../../types/BaseProps";
+import type { LngLat } from "../../types/LngLat";
 import type { LngLatBounds } from "../../types/LngLatBounds";
 import type { ViewPadding } from "../../types/ViewPadding";
 export interface CameraOptions {
@@ -35,7 +36,7 @@ export interface CameraCenterOptions {
     /**
      * Geographic center coordinates of the map
      */
-    center: [longitude: number, latitude: number];
+    center: LngLat;
 }
 export interface CameraBoundsOptions {
     /**
@@ -53,6 +54,10 @@ export type InitialViewState = (CameraOptions & {
     center?: never;
     bounds?: never;
 }) | (CameraOptions & CameraCenterOptions) | (CameraOptions & CameraBoundsOptions);
+export type TrackUserLocation = "default" | "heading" | "course";
+export type TrackUserLocationChangeEvent = {
+    trackUserLocation: TrackUserLocation | null;
+};
 export interface CameraRef {
     /**
      * Map camera will move to new coordinates at the same zoom level
@@ -133,10 +138,6 @@ export interface CameraRef {
      */
     setStop(stop: CameraStop): Promise<void>;
 }
-export type TrackUserLocation = "default" | "heading" | "course";
-export type TrackUserLocationChangeEvent = {
-    trackUserLocation: TrackUserLocation | null;
-};
 export type CameraProps = BaseProps & Partial<CameraStop> & {
     /**
      * Default view settings applied on camera

@@ -1,33 +1,33 @@
+import type { SymbolLayerSpecification } from "@maplibre/maplibre-gl-style-spec";
 import { memo } from "react";
 
-import headingIcon from "../../assets/heading.png";
 import { type BaseProps } from "../../types/BaseProps";
-import type { SymbolLayerStyle } from "../../types/MapLibreRNStyles";
-import { SymbolLayer } from "../layers/SymbolLayer";
+import { Layer } from "../layer/Layer";
 
-const layerStyle: SymbolLayerStyle = {
-  iconImage: headingIcon,
-  iconAllowOverlap: true,
-  iconPitchAlignment: "map",
-  iconRotationAlignment: "map",
+const SYMBOL_LAYER_LAYOUT: SymbolLayerSpecification["layout"] = {
+  "icon-image": "mlrn-user-location-puck-heading",
+  "icon-allow-overlap": true,
+  "icon-pitch-alignment": "map",
+  "icon-rotation-alignment": "map",
 };
 
 interface UserLocationPuckHeadingProps extends BaseProps {
-  sourceID: string;
-  belowLayerID?: string;
+  source: string;
+  beforeId?: string;
   heading: number;
 }
 
 export const UserLocationPuckHeading = memo(
-  ({ sourceID, belowLayerID, heading }: UserLocationPuckHeadingProps) => (
-    <SymbolLayer
+  ({ source, beforeId, heading }: UserLocationPuckHeadingProps) => (
+    <Layer
+      type="symbol"
       id="mlrn-user-location-puck-heading"
       testID="mlrn-user-location-puck-heading"
-      sourceID={sourceID}
-      belowLayerID={belowLayerID}
-      style={{
-        ...layerStyle,
-        iconRotate: heading,
+      source={source}
+      beforeId={beforeId}
+      layout={{
+        ...SYMBOL_LAYER_LAYOUT,
+        "icon-rotate": heading,
       }}
     />
   ),

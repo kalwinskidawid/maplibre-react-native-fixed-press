@@ -1,7 +1,9 @@
-import { OfflineCreatePackOptions } from "./OfflineCreatePackOptions";
+import { type NativeOfflinePack } from "./NativeOfflineModule";
+import type { OfflinePackDownloadState } from "./OfflineManager";
+import type { LngLatBounds } from "../../types/LngLatBounds";
 export type OfflinePackStatus = {
-    name: string;
-    state: number;
+    id: string;
+    state: OfflinePackDownloadState;
     percentage: number;
     completedResourceCount: number;
     completedResourceSize: number;
@@ -10,12 +12,12 @@ export type OfflinePackStatus = {
     requiredResourceCount: number;
 };
 export declare class OfflinePack {
-    private pack;
-    private _metadata;
-    constructor(pack: OfflineCreatePackOptions);
-    get name(): string | null;
-    get bounds(): string;
-    get metadata(): Record<string, any> | null;
+    /** Unique Identifier (UUID), auto-generated natively during creation. */
+    id: string;
+    /** User-provided metadata object. */
+    metadata: Record<string, unknown>;
+    bounds: LngLatBounds;
+    constructor(pack: NativeOfflinePack);
     status(): Promise<OfflinePackStatus>;
     resume(): Promise<void>;
     pause(): Promise<void>;

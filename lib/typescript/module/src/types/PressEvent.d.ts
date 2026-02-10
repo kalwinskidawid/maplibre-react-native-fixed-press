@@ -10,7 +10,4 @@ export interface PressEvent {
      */
     point: PixelPoint;
 }
-export interface PressEventWithFeatures extends PressEvent {
-    features: GeoJSON.Feature[];
-}
 //# sourceMappingURL=PressEvent.d.ts.map

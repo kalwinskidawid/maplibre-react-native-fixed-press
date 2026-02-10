@@ -20,12 +20,8 @@ import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.bridge.WritableArray
 import com.facebook.react.bridge.WritableMap
-import com.facebook.react.bridge.WritableNativeArray
-import com.facebook.react.bridge.WritableNativeMap
 import com.facebook.react.uimanager.UIManagerHelper
 import com.facebook.react.uimanager.events.EventDispatcher
-import org.json.JSONException
-import org.json.JSONObject
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdate
 import org.maplibre.android.geometry.LatLng
@@ -48,48 +44,63 @@ import org.maplibre.android.style.layers.PropertyFactory
 import org.maplibre.geojson.Feature
 import org.maplibre.reactnative.R
 import org.maplibre.reactnative.components.AbstractMapFeature
-import org.maplibre.reactnative.components.annotations.MLRNMarkerView
-import org.maplibre.reactnative.components.annotations.MLRNPointAnnotation
-import org.maplibre.reactnative.components.annotations.MarkerViewManager
+import org.maplibre.reactnative.components.annotations.markerview.MLRNMarkerView
+import org.maplibre.reactnative.components.annotations.markerview.MarkerViewManager
+import org.maplibre.reactnative.components.annotations.pointannotation.MLRNPointAnnotation
 import org.maplibre.reactnative.components.camera.MLRNCamera
 import org.maplibre.reactnative.components.images.MLRNImages
-import org.maplibre.reactnative.components.layers.MLRNLayer
-import org.maplibre.reactnative.components.layers.style.MLRNStyle
-import org.maplibre.reactnative.components.layers.style.MLRNStyleFactory
+import org.maplibre.reactnative.components.layer.MLRNLayer
+import org.maplibre.reactnative.components.layer.style.MLRNStyle
+import org.maplibre.reactnative.components.layer.style.MLRNStyleFactory
 import org.maplibre.reactnative.components.location.LocationComponentManager
 import org.maplibre.reactnative.components.location.MLRNNativeUserLocation
 import org.maplibre.reactnative.components.mapview.helpers.CameraChangeTracker
 import org.maplibre.reactnative.components.mapview.helpers.LayerSourceInfo
+import org.maplibre.reactnative.components.sources.MLRNPressableSource
 import org.maplibre.reactnative.components.sources.MLRNSource
-import org.maplibre.reactnative.components.sources.MLRNSource.OnPressEvent
 import org.maplibre.reactnative.events.MapChangeEvent
 import org.maplibre.reactnative.events.MapPressEvent
-import org.maplibre.reactnative.modules.MLRNModule
 import org.maplibre.reactnative.utils.BitmapUtils
 import org.maplibre.reactnative.utils.ConvertUtils
 import org.maplibre.reactnative.utils.GeoJSONUtils
 import kotlin.math.roundToInt
 
 sealed class MapChild {
-    data class FeatureChild(val feature: AbstractMapFeature) : MapChild()
-    data class ViewChild(val view: View) : MapChild()
+    data class FeatureChild(
+        val feature: AbstractMapFeature,
+    ) : MapChild()
 
-    fun toView(): View? = when (this) {
-        is FeatureChild -> feature
-        is ViewChild -> view
-    }
+    data class ViewChild(
+        val view: View,
+    ) : MapChild()
+
+    fun toView(): View? =
+        when (this) {
+            is FeatureChild -> feature
+            is ViewChild -> view
+        }
 }
 
 open class MLRNMapView(
-    context: Context, options: MapLibreMapOptions?
+    context: Context,
+    options: MapLibreMapOptions?,
 ) : MapView(
-    context, options
-), OnMapReadyCallback, MapLibreMap.OnMapClickListener, MapLibreMap.OnMapLongClickListener,
-    MapView.OnCameraIsChangingListener, MapView.OnCameraDidChangeListener,
-    MapView.OnWillStartLoadingMapListener, MapView.OnDidFailLoadingMapListener,
-    MapView.OnDidFinishLoadingMapListener, MapView.OnWillStartRenderingFrameListener,
-    MapView.OnWillStartRenderingMapListener, MapView.OnDidFinishRenderingFrameListener,
-    MapView.OnDidFinishRenderingMapListener, MapView.OnDidFinishLoadingStyleListener,
+        context,
+        options,
+    ),
+    OnMapReadyCallback,
+    MapLibreMap.OnMapClickListener,
+    MapLibreMap.OnMapLongClickListener,
+    MapView.OnCameraIsChangingListener,
+    MapView.OnCameraDidChangeListener,
+    MapView.OnWillStartLoadingMapListener,
+    MapView.OnDidFailLoadingMapListener,
+    MapView.OnDidFinishLoadingMapListener,
+    MapView.OnWillStartRenderingFrameListener,
+    MapView.OnWillStartRenderingMapListener,
+    MapView.OnDidFinishRenderingFrameListener,
+    MapView.OnDidFinishRenderingMapListener,
+    MapView.OnDidFinishLoadingStyleListener,
     MapView.OnStyleImageMissingListener {
     constructor(context: Context) : this(context, options = null)
 
@@ -98,7 +109,8 @@ open class MLRNMapView(
 
     @Suppress("UNUSED_PARAMETER")
     constructor(context: Context, attrs: AttributeSet?, defStyleAttr: Int) : this(
-        context, options = null
+        context,
+        options = null,
     )
 
     private val handler: Handler
@@ -109,8 +121,8 @@ open class MLRNMapView(
     private var camera: MLRNCamera? = null
     private val children: MutableList<MapChild>
     private var queuedChildren: MutableList<MapChild>?
-    private val pointAnnotations: MutableMap<String?, MLRNPointAnnotation?>
-    private val sources: MutableMap<String?, MLRNSource<*>?>
+    private val pointAnnotations: MutableMap<String, MLRNPointAnnotation>
+    private val sources: MutableMap<String, MLRNSource<*>>
     private val images: MutableList<MLRNImages>
 
     private val cameraChangeTracker = CameraChangeTracker()
@@ -118,7 +130,7 @@ open class MLRNMapView(
     var mapLibreMap: MapLibreMap? = null
         private set
 
-    private var mapStyle: String
+    private var mapStyle: String? = null
     private var insets: ReadableArray? = null
     private var preferredFramesPerSecond: Int? = null
 
@@ -140,16 +152,15 @@ open class MLRNMapView(
     private var compassEnabled: Boolean? = null
     private var compassGravity: Int? = null
     private var compassMargins: IntArray? = null
-
+    private var compassHiddenFacingNorth: Boolean? = null
 
     private var symbolManager: SymbolManager? = null
 
-    private var activeMarkerID: Long = -1
+    private var activePointAnnotationAnnotationId: Long? = null
+    private var pointAnnotationClicked = false
 
     private var markerViewManager: MarkerViewManager? = null
     private var offscreenAnnotationViewContainer: ViewGroup? = null
-
-    private var annotationClicked = false
 
     val locationComponentManager: LocationComponentManager by lazy {
         LocationComponentManager(this, context)
@@ -184,39 +195,44 @@ open class MLRNMapView(
         destroyed = true
     }
 
-    fun addFeature(childView: View?, childPosition: Int) {
-        val child: MapChild? = when (childView) {
+    fun addFeature(
+        childView: View?,
+        childPosition: Int,
+    ) {
+        val child: MapChild? =
+            when (childView) {
+                is MLRNCamera -> {
+                    camera = childView
+                    MapChild.FeatureChild(childView)
+                }
 
-            is MLRNCamera -> {
-                camera = childView
-                MapChild.FeatureChild(childView)
+                is MLRNSource<*> -> {
+                    sources[childView.getID()] = childView
+                    MapChild.FeatureChild(childView)
+                }
+
+                is MLRNPointAnnotation -> {
+                    pointAnnotations[childView.mapLibreId!!] = childView
+                    MapChild.FeatureChild(childView)
+                }
+
+                is MLRNImages -> {
+                    images.add(childView)
+                    MapChild.FeatureChild(childView)
+                }
+
+                is MLRNNativeUserLocation, is MLRNMarkerView, is MLRNLayer -> {
+                    MapChild.FeatureChild(childView)
+                }
+
+                is ViewGroup -> {
+                    MapChild.ViewChild(childView)
+                }
+
+                else -> {
+                    null
+                }
             }
-
-            is MLRNSource<*> -> {
-                sources[childView.getID()] = childView
-                MapChild.FeatureChild(childView)
-            }
-
-            is MLRNPointAnnotation -> {
-                pointAnnotations[childView.getID()] = childView
-                MapChild.FeatureChild(childView)
-            }
-
-            is MLRNImages -> {
-                images.add(childView)
-                MapChild.FeatureChild(childView)
-            }
-
-            is MLRNNativeUserLocation, is MLRNMarkerView, is MLRNLayer<*> -> {
-                MapChild.FeatureChild(childView)
-            }
-
-            is ViewGroup -> {
-                MapChild.ViewChild(childView)
-            }
-
-            else -> null
-        }
 
         if (child != null) {
             if (queuedChildren == null) {
@@ -248,11 +264,11 @@ open class MLRNMapView(
                     }
 
                     is MLRNPointAnnotation -> {
-                        if (child.feature.mapboxID == activeMarkerID) {
-                            activeMarkerID = -1
+                        if (child.feature.annotationId == activePointAnnotationAnnotationId) {
+                            activePointAnnotationAnnotationId = null
                         }
 
-                        pointAnnotations.remove(child.feature.getID())
+                        child.feature.mapLibreId?.let { pointAnnotations.remove(it) }
                     }
 
                     is MLRNImages -> {
@@ -275,9 +291,7 @@ open class MLRNMapView(
 
     val featureCount: Int get() = children().size
 
-    fun getFeatureAt(i: Int): MapChild {
-        return children()[i]
-    }
+    fun getFeatureAt(i: Int): MapChild = children()[i]
 
     @Synchronized
     fun dispose() {
@@ -303,7 +317,10 @@ open class MLRNMapView(
     val cameraPosition: CameraPosition
         get() = mapLibreMap!!.cameraPosition
 
-    fun moveCamera(cameraUpdate: CameraUpdate, callback: MapLibreMap.CancelableCallback?) {
+    fun moveCamera(
+        cameraUpdate: CameraUpdate,
+        callback: MapLibreMap.CancelableCallback?,
+    ) {
         mapLibreMap!!.moveCamera(cameraUpdate, callback)
     }
 
@@ -311,7 +328,7 @@ open class MLRNMapView(
         for (key in pointAnnotations.keys) {
             val annotation = pointAnnotations[key]
 
-            if (annotation != null && markerID == annotation.mapboxID) {
+            if (annotation != null && markerID == annotation.annotationId) {
                 return annotation
             }
         }
@@ -319,9 +336,7 @@ open class MLRNMapView(
         return null
     }
 
-    fun getSymbolManager(): SymbolManager {
-        return symbolManager!!
-    }
+    fun getSymbolManager(): SymbolManager = symbolManager!!
 
     interface FoundLayerCallback {
         fun found(layer: Layer?)
@@ -343,8 +358,6 @@ open class MLRNMapView(
         queuedChildren = ArrayList()
 
         handler = Handler(Looper.getMainLooper())
-
-        mapStyle = MLRNModule.DEFAULT_STYLE_URL
 
         setLifecycleListeners()
 
@@ -373,7 +386,10 @@ open class MLRNMapView(
         layerWaiters.remove(layerId)
     }
 
-    fun waitForLayer(layerID: String, callback: FoundLayerCallback) {
+    fun waitForLayer(
+        layerID: String,
+        callback: FoundLayerCallback,
+    ) {
         val layer = mapLibreMap!!.style!!.getLayer(layerID)
         if (layer != null) {
             callback.found(layer)
@@ -383,22 +399,19 @@ open class MLRNMapView(
         }
     }
 
-    fun isJSONValid(test: String): Boolean {
-        try {
-            JSONObject(test)
-        } catch (_: JSONException) {
-            return false
-        }
-        return true
-    }
-
     override fun onMapReady(mapLibreMap: MapLibreMap) {
         this.mapLibreMap = mapLibreMap
 
-        if (isJSONValid(mapStyle)) {
-            mapLibreMap.setStyle(Style.Builder().fromJson(mapStyle))
-        } else {
-            mapLibreMap.setStyle(Style.Builder().fromUri(mapStyle))
+        mapStyle?.let { style ->
+            mapLibreMap.setStyle(
+                if (ConvertUtils.isJSONValid(style)) {
+                    Style.Builder().fromJson(style)
+                } else {
+                    Style
+                        .Builder()
+                        .fromUri(style)
+                },
+            )
         }
 
         reflow()
@@ -418,26 +431,22 @@ open class MLRNMapView(
             handleMapChangedEvent("onRegionWillChange", true)
         }
 
-        mapLibreMap.addOnCameraMoveListener {
-            if (markerViewManager != null) {
-                markerViewManager!!.updateMarkers()
-            }
-        }
+        mapLibreMap.addOnMoveListener(
+            object : MapLibreMap.OnMoveListener {
+                override fun onMoveBegin(detector: MoveGestureDetector) {
+                    cameraChangeTracker.setReason(CameraChangeTracker.USER_GESTURE)
+                    handleMapChangedEvent("onRegionWillChange", true)
+                }
 
-        mapLibreMap.addOnMoveListener(object : MapLibreMap.OnMoveListener {
-            override fun onMoveBegin(detector: MoveGestureDetector) {
-                cameraChangeTracker.setReason(CameraChangeTracker.USER_GESTURE)
-                handleMapChangedEvent("onRegionWillChange", true)
-            }
+                override fun onMove(detector: MoveGestureDetector) {
+                    cameraChangeTracker.setReason(CameraChangeTracker.USER_GESTURE)
+                    handleMapChangedEvent("onRegionIsChanging", true)
+                }
 
-            override fun onMove(detector: MoveGestureDetector) {
-                cameraChangeTracker.setReason(CameraChangeTracker.USER_GESTURE)
-                handleMapChangedEvent("onRegionIsChanging")
-            }
-
-            override fun onMoveEnd(detector: MoveGestureDetector) {
-            }
-        })
+                override fun onMoveEnd(detector: MoveGestureDetector) {
+                }
+            },
+        )
 
         mapLibreMap.addOnCameraIdleListener { sendRegionDidChangeEvent() }
     }
@@ -446,7 +455,7 @@ open class MLRNMapView(
         handler.post {
             measure(
                 MeasureSpec.makeMeasureSpec(measuredWidth, MeasureSpec.EXACTLY),
-                MeasureSpec.makeMeasureSpec(measuredHeight, MeasureSpec.EXACTLY)
+                MeasureSpec.makeMeasureSpec(measuredHeight, MeasureSpec.EXACTLY),
             )
             layout(left, top, right, bottom)
         }
@@ -459,35 +468,37 @@ open class MLRNMapView(
             onMarkerClick(symbol)
             true
         }
-        symbolManager!!.addDragListener(object : OnSymbolDragListener {
-            override fun onAnnotationDragStarted(symbol: Symbol) {
-                annotationClicked = true
-                val selectedMarkerID = symbol.id
-                val annotation = getPointAnnotationByMarkerID(selectedMarkerID)
-                annotation?.onDragStart()
-            }
+        symbolManager!!.addDragListener(
+            object : OnSymbolDragListener {
+                override fun onAnnotationDragStarted(symbol: Symbol) {
+                    pointAnnotationClicked = true
+                    val selectedMarkerID = symbol.id
+                    val annotation = getPointAnnotationByMarkerID(selectedMarkerID)
+                    annotation?.onDragStart()
+                }
 
-            override fun onAnnotationDrag(symbol: Symbol) {
-                val selectedMarkerID = symbol.id
-                val annotation = getPointAnnotationByMarkerID(selectedMarkerID)
-                annotation?.onDrag()
-            }
+                override fun onAnnotationDrag(symbol: Symbol) {
+                    val selectedMarkerID = symbol.id
+                    val annotation = getPointAnnotationByMarkerID(selectedMarkerID)
+                    annotation?.onDrag()
+                }
 
-            override fun onAnnotationDragFinished(symbol: Symbol) {
-                annotationClicked = false
-                val selectedMarkerID = symbol.id
-                val annotation = getPointAnnotationByMarkerID(selectedMarkerID)
-                annotation?.onDragEnd()
-            }
-        })
+                override fun onAnnotationDragFinished(symbol: Symbol) {
+                    pointAnnotationClicked = false
+                    val selectedMarkerID = symbol.id
+                    val annotation = getPointAnnotationByMarkerID(selectedMarkerID)
+                    annotation?.onDragEnd()
+                }
+            },
+        )
         mapLibreMap!!.addOnMapClickListener(this)
         mapLibreMap!!.addOnMapLongClickListener(this)
     }
 
     fun addQueuedFeatures() {
-        if (queuedChildren != null && !queuedChildren!!.isEmpty()) {
-            for (i in queuedChildren!!.indices) {
-                val child = queuedChildren!![i]
+        queuedChildren?.let {
+            for (i in it.indices) {
+                val child = it[i]
 
                 when (child) {
                     is MapChild.FeatureChild -> {
@@ -517,7 +528,13 @@ open class MLRNMapView(
         return result
     }
 
-    override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
+    override fun onLayout(
+        changed: Boolean,
+        left: Int,
+        top: Int,
+        right: Int,
+        bottom: Int,
+    ) {
         if (!paused) {
             if (markerViewManager != null) {
                 markerViewManager!!.removeViews()
@@ -529,48 +546,52 @@ open class MLRNMapView(
         }
     }
 
-
     override fun onMapClick(latLng: LatLng): Boolean {
-        if (annotationClicked) {
-            annotationClicked = false
-            //return true
+        if (pointAnnotationClicked) {
+            pointAnnotationClicked = false
         }
 
-        val screenPoint = mapLibreMap!!.projection.toScreenLocation(latLng)
-        val touchableSources = this.allTouchableSources
-
-        val hits: MutableMap<String?, MutableList<Feature?>?> = HashMap()
-        val hitTouchableSources: MutableList<MLRNSource<*>> = ArrayList()
-        for (touchableSource in touchableSources) {
-            val hitbox = touchableSource.getTouchHitbox() ?: continue
-
-            val halfWidth = hitbox["width"]!!.toFloat() / 2.0f
-            val halfHeight = hitbox["height"]!!.toFloat() / 2.0f
-
-            val hitboxF = RectF()
-            hitboxF.set(
-                screenPoint.x - halfWidth,
-                screenPoint.y - halfHeight,
-                screenPoint.x + halfWidth,
-                screenPoint.y + halfHeight
-            )
-
-            val features =
-                mapLibreMap!!.queryRenderedFeatures(hitboxF, *touchableSource.getLayerIDs())
-            if (features.isNotEmpty()) {
-                hits[touchableSource.getID()] = features
-                hitTouchableSources.add(touchableSource)
+        if (activePointAnnotationAnnotationId != null) {
+            val active =
+                pointAnnotations.values.find { it.annotationId == activePointAnnotationAnnotationId }
+            if (active != null) {
+                deselectAnnotation(active)
             }
         }
 
-        if (hits.isNotEmpty()) {
-            val source = getTouchableSourceWithHighestZIndex(hitTouchableSources)
-            if (source != null && source.hasPressListener()) {
-                source.onPress(
-                    OnPressEvent(
-                        hits[source.getID()]!!, latLng, screenPoint
-                    )
+        val screenPoint = mapLibreMap!!.projection.toScreenLocation(latLng)
+
+        val hits: MutableMap<String, MutableList<Feature>?> = HashMap()
+        val hitPressableSources: MutableList<MLRNPressableSource<*>> = ArrayList()
+        for (pressableSource in this.pressableSources) {
+            val hitbox = pressableSource.hitbox ?: continue
+
+            val pointWithHitbox =
+                RectF(
+                    screenPoint.x - (hitbox.left * displayDensity),
+                    screenPoint.y - (hitbox.top * displayDensity),
+                    screenPoint.x + (hitbox.right * displayDensity),
+                    screenPoint.y + (hitbox.bottom * displayDensity),
                 )
+
+            val features =
+                mapLibreMap!!.queryRenderedFeatures(pointWithHitbox, *pressableSource.getLayerIDs())
+            if (features.isNotEmpty()) {
+                hits[pressableSource.getID()] = features
+                hitPressableSources.add(pressableSource)
+            }
+        }
+
+        screenPoint.x /= this.displayDensity
+        screenPoint.y /= this.displayDensity
+
+        if (hits.isNotEmpty()) {
+            val source = getPressableSourceWithHighestZIndex(hitPressableSources)
+            if (source != null && source.hasOnPress) {
+                hits[source.getID()]?.let {
+                    source.onPress(it, latLng, screenPoint)
+                }
+
                 return true
             }
         }
@@ -582,11 +603,13 @@ open class MLRNMapView(
     }
 
     override fun onMapLongClick(latLng: LatLng): Boolean {
-        if (annotationClicked) {
-            annotationClicked = false
-            return true
+        if (pointAnnotationClicked) {
+            pointAnnotationClicked = false
         }
+
         val screenPoint = mapLibreMap!!.projection.toScreenLocation(latLng)
+        screenPoint.x /= this.displayDensity
+        screenPoint.y /= this.displayDensity
 
         val event = MapPressEvent(surfaceId, id, "onLongPress", latLng, screenPoint)
         eventDispatcher?.dispatchEvent(event)
@@ -595,20 +618,22 @@ open class MLRNMapView(
     }
 
     fun onMarkerClick(symbol: Symbol) {
-        annotationClicked = true
+        pointAnnotationClicked = true
         val selectedMarkerID = symbol.id
 
         var activeAnnotation: MLRNPointAnnotation? = null
         var nextActiveAnnotation: MLRNPointAnnotation? = null
 
         for (key in pointAnnotations.keys) {
-            val annotation = pointAnnotations[key]
-            val curMarkerID = annotation!!.mapboxID
-            if (activeMarkerID == curMarkerID) {
-                activeAnnotation = annotation
+            val pointAnnotation = pointAnnotations[key]
+            val currentAnnotationId = pointAnnotation!!.annotationId
+
+            if (activePointAnnotationAnnotationId == currentAnnotationId) {
+                activeAnnotation = pointAnnotation
             }
-            if (selectedMarkerID == curMarkerID && activeMarkerID != curMarkerID) {
-                nextActiveAnnotation = annotation
+
+            if (selectedMarkerID == currentAnnotationId && activePointAnnotationAnnotationId != currentAnnotationId) {
+                nextActiveAnnotation = pointAnnotation
             }
         }
 
@@ -622,12 +647,12 @@ open class MLRNMapView(
     }
 
     fun selectAnnotation(annotation: MLRNPointAnnotation) {
-        activeMarkerID = annotation.mapboxID
+        activePointAnnotationAnnotationId = annotation.annotationId
         annotation.onSelect(true)
     }
 
     fun deselectAnnotation(annotation: MLRNPointAnnotation) {
-        activeMarkerID = -1
+        activePointAnnotationAnnotationId = null
         annotation.onDeselect()
     }
 
@@ -636,7 +661,7 @@ open class MLRNMapView(
     }
 
     override fun onCameraIsChanging() {
-        handleMapChangedEvent("onRegionIsChanging")
+        handleMapChangedEvent("onRegionIsChanging", true)
     }
 
     override fun onWillStartLoadingMap() {
@@ -651,13 +676,15 @@ open class MLRNMapView(
         handleMapChangedEvent("onDidFailLoadingMap")
     }
 
-
     override fun onWillStartRenderingFrame() {
+        markerViewManager?.updateMarkers()
         handleMapChangedEvent("onWillStartRenderingFrame")
     }
 
     override fun onDidFinishRenderingFrame(
-        fully: Boolean, frameEncodingTime: Double, frameRenderingTime: Double
+        fully: Boolean,
+        frameEncodingTime: Double,
+        frameRenderingTime: Double,
     ) {
         if (fully) {
             handleMapChangedEvent("onDidFinishRenderingFrameFully")
@@ -689,8 +716,9 @@ open class MLRNMapView(
                 return
             }
         }
+
         for (images in images) {
-            images.sendImageMissingEvent(id, this.mapLibreMap!!)
+            images.sendImageMissingEvent(id)
         }
     }
 
@@ -701,17 +729,19 @@ open class MLRNMapView(
         if (value != null) {
             mapStyle = value
 
-            if (mapLibreMap != null) {
+            mapLibreMap?.let { map ->
                 removeAllSourcesFromMap()
 
-                if (isJSONValid(mapStyle)) {
-                    mapLibreMap!!.setStyle(
-                        Style.Builder().fromJson(mapStyle)
+                mapStyle?.let { style ->
+                    map.setStyle(
+                        if (ConvertUtils.isJSONValid(style)) {
+                            Style.Builder().fromJson(style)
+                        } else {
+                            Style
+                                .Builder()
+                                .fromUri(style)
+                        },
                     ) {
-                        addAllSourcesToMap()
-                    }
-                } else {
-                    mapLibreMap!!.setStyle(value) {
                         addAllSourcesToMap()
                     }
                 }
@@ -739,7 +769,7 @@ open class MLRNMapView(
 
     fun setReactContentInset(value: ReadableMap?) {
         if (value != null) {
-            val arr = WritableNativeArray()
+            val arr = Arguments.createArray()
             arr.pushDouble(if (value.hasKey("top")) value.getDouble("top") else 0.0)
             arr.pushDouble(if (value.hasKey("right")) value.getDouble("right") else 0.0)
             arr.pushDouble(if (value.hasKey("bottom")) value.getDouble("bottom") else 0.0)
@@ -789,7 +819,7 @@ open class MLRNMapView(
         defaultGravityKey: (MapLibreMapOptions) -> Int,
         defaultMarginsKey: (MapLibreMapOptions) -> IntArray,
         setGravity: (Int) -> Unit,
-        setMargins: (IntArray) -> Unit
+        setMargins: (IntArray) -> Unit,
     ) {
         if (position == null) {
             val defaults = MapLibreMapOptions.createFromAttributes(context)
@@ -801,17 +831,18 @@ open class MLRNMapView(
             if (position.hasKey("right")) gravity = gravity or Gravity.END
             if (position.hasKey("top")) gravity = gravity or Gravity.TOP
             if (position.hasKey("bottom")) gravity = gravity or Gravity.BOTTOM
-            val density = this.displayDensity
-            val margins = intArrayOf(
-                if (position.hasKey("left")) (density * position.getInt("left")).roundToInt() else 0,
-                if (position.hasKey("top")) (density * position.getInt("top")).roundToInt() else 0,
-                if (position.hasKey("right")) (density * position.getInt("right")).roundToInt() else 0,
-                if (position.hasKey("bottom")) (density * position.getInt("bottom")).roundToInt() else 0
-            )
+            val margins =
+                intArrayOf(
+                    if (position.hasKey("left")) (displayDensity * position.getInt("left")).roundToInt() else 0,
+                    if (position.hasKey("top")) (displayDensity * position.getInt("top")).roundToInt() else 0,
+                    if (position.hasKey("right")) (displayDensity * position.getInt("right")).roundToInt() else 0,
+                    if (position.hasKey("bottom")) (displayDensity * position.getInt("bottom")).roundToInt() else 0,
+                )
             setGravity(gravity)
             setMargins(margins)
         }
         updateUISettings()
+        reflow()
     }
 
     fun setReactAttribution(value: Boolean) {
@@ -825,7 +856,8 @@ open class MLRNMapView(
             { it.attributionGravity },
             { it.attributionMargins },
             { attributionGravity = it },
-            { attributionMargin = it })
+            { attributionMargin = it },
+        )
     }
 
     fun setReactLogo(value: Boolean) {
@@ -839,7 +871,8 @@ open class MLRNMapView(
             { it.logoGravity },
             { it.logoMargins },
             { logoGravity = it },
-            { logoMargins = it })
+            { logoMargins = it },
+        )
     }
 
     fun setReactCompass(value: Boolean) {
@@ -853,7 +886,13 @@ open class MLRNMapView(
             { it.compassGravity },
             { it.compassMargins },
             { compassGravity = it },
-            { compassMargins = it })
+            { compassMargins = it },
+        )
+    }
+
+    fun setReactCompassHiddenFacingNorth(value: Boolean) {
+        compassHiddenFacingNorth = value
+        updateUISettings()
     }
 
     fun getCenter(): WritableArray {
@@ -888,7 +927,7 @@ open class MLRNMapView(
     }
 
     fun getViewState(): WritableMap {
-        val payload = Arguments.createMap();
+        val payload = Arguments.createMap()
         payload.putArray("center", getCenter())
         payload.putDouble("zoom", getZoom())
         payload.putDouble("bearing", getBearing())
@@ -899,60 +938,55 @@ open class MLRNMapView(
     }
 
     fun queryRenderedFeaturesWithPoint(
-        point: PointF, layers: ReadableArray?, filter: Expression?,
+        point: PointF,
+        layers: ReadableArray?,
+        filter: Expression?,
     ): WritableArray {
-        val density = this.displayDensity
-        val screenPoint = PointF(point.x * density, point.y * density)
+        val screenPoint = PointF(point.x * displayDensity, point.y * displayDensity)
 
-        val features = mapLibreMap!!.queryRenderedFeatures(
-            screenPoint,
-            filter,
-            *(layers?.let { Array(layers.size()) { layers.getString(it) } } ?: emptyArray()))
+        val features =
+            mapLibreMap!!.queryRenderedFeatures(
+                screenPoint,
+                filter,
+                *(layers?.let { Array(layers.size()) { layers.getString(it) } } ?: emptyArray()),
+            )
 
-
-        val result = Arguments.createArray()
-        for (feature in features) {
-            val jsonObject = com.google.gson.JsonParser.parseString(feature.toJson()).asJsonObject
-            result.pushMap(ConvertUtils.toWritableMap(jsonObject))
-        }
-        return result
+        return GeoJSONUtils.fromFeatureList(features)
     }
 
-
     fun queryRenderedFeaturesWithRect(
-        rect: RectF?, layers: ReadableArray?, filter: Expression?,
+        rect: RectF?,
+        layers: ReadableArray?,
+        filter: Expression?,
     ): WritableArray {
-        val screenRect = if (rect == null) {
-            val width = this.width.toFloat()
-            val height = this.height.toFloat()
-            RectF(0f, 0f, width, height)
-        } else {
-            RectF(
-                rect.left * this.displayDensity,
-                rect.top * this.displayDensity,
-                rect.right * this.displayDensity,
-                rect.bottom * this.displayDensity
+        val screenRect =
+            if (rect == null) {
+                val width = this.width.toFloat()
+                val height = this.height.toFloat()
+                RectF(0f, 0f, width, height)
+            } else {
+                RectF(
+                    rect.left * this.displayDensity,
+                    rect.top * this.displayDensity,
+                    rect.right * this.displayDensity,
+                    rect.bottom * this.displayDensity,
+                )
+            }
+
+        val features =
+            mapLibreMap!!.queryRenderedFeatures(
+                screenRect,
+                filter,
+                *(layers?.let { Array(layers.size()) { layers.getString(it) } } ?: emptyArray()),
             )
-        }
 
-        val features = mapLibreMap!!.queryRenderedFeatures(
-            screenRect,
-            filter,
-            *(layers?.let { Array(layers.size()) { layers.getString(it) } } ?: emptyArray()))
-
-        val result = Arguments.createArray()
-        for (feature in features) {
-            val jsonObject = com.google.gson.JsonParser.parseString(feature.toJson()).asJsonObject
-            result.pushMap(ConvertUtils.toWritableMap(jsonObject))
-        }
-        return result
+        return GeoJSONUtils.fromFeatureList(features)
     }
 
     fun project(mapCoordinate: LatLng): WritableArray {
         val pointInView = mapLibreMap!!.projection.toScreenLocation(mapCoordinate)
-        val density = this.displayDensity
-        pointInView.x /= density
-        pointInView.y /= density
+        pointInView.x /= displayDensity
+        pointInView.y /= displayDensity
         val payload: WritableArray = Arguments.createArray()
 
         payload.pushDouble(pointInView.x.toDouble())
@@ -962,23 +996,29 @@ open class MLRNMapView(
     }
 
     fun unproject(pointInView: PointF): WritableArray {
-        val density = this.displayDensity
-        pointInView.x *= density
-        pointInView.y *= density
+        pointInView.x *= displayDensity
+        pointInView.y *= displayDensity
 
         val latLng = mapLibreMap!!.projection.fromScreenLocation(pointInView)
 
         return GeoJSONUtils.fromLatLng(latLng)
     }
 
-    fun takeSnap(writeToDisk: Boolean, callback: (String) -> Unit) {
+    fun takeSnap(
+        writeToDisk: Boolean,
+        callback: (String) -> Unit,
+    ) {
         if (this.mapLibreMap == null) {
             throw Error("takeSnap should only be called after the map has rendered")
         }
 
         mapLibreMap!!.snapshot { snapshot ->
-            val uri = if (writeToDisk) BitmapUtils.createTempFile(context, snapshot)
-            else BitmapUtils.createBase64(snapshot)
+            val uri =
+                if (writeToDisk) {
+                    BitmapUtils.createTempFile(context, snapshot)
+                } else {
+                    BitmapUtils.createBase64(snapshot)
+                }
 
             callback(uri)
         }
@@ -990,7 +1030,9 @@ open class MLRNMapView(
     }
 
     fun setSourceVisibility(
-        visible: Boolean, sourceId: String, sourceLayerId: String?
+        visible: Boolean,
+        sourceId: String,
+        sourceLayerId: String?,
     ) {
         if (this.mapLibreMap == null) {
             return
@@ -1011,9 +1053,7 @@ open class MLRNMapView(
         viewTreeObserver.dispatchOnGlobalLayout()
     }
 
-    override fun isDestroyed(): Boolean {
-        return destroyed
-    }
+    override fun isDestroyed(): Boolean = destroyed
 
     fun getStyle(onStyleLoaded: OnStyleLoaded) {
         if (this.mapLibreMap == null) {
@@ -1070,12 +1110,18 @@ open class MLRNMapView(
             uiSettings.attributionGravity = attributionGravity!!
         }
 
-        if (attributionMargin != null && (uiSettings.attributionMarginLeft != attributionMargin!![0] || uiSettings.attributionMarginTop != attributionMargin!![1] || uiSettings.attributionMarginRight != attributionMargin!![2] || uiSettings.attributionMarginBottom != attributionMargin!![3])) {
+        if (attributionMargin != null &&
+            (
+                uiSettings.attributionMarginLeft != attributionMargin!![0] || uiSettings.attributionMarginTop != attributionMargin!![1] ||
+                    uiSettings.attributionMarginRight != attributionMargin!![2] ||
+                    uiSettings.attributionMarginBottom != attributionMargin!![3]
+            )
+        ) {
             uiSettings.setAttributionMargins(
                 attributionMargin!![0],
                 attributionMargin!![1],
                 attributionMargin!![2],
-                attributionMargin!![3]
+                attributionMargin!![3],
             )
         }
 
@@ -1087,9 +1133,18 @@ open class MLRNMapView(
             uiSettings.logoGravity = logoGravity!!
         }
 
-        if (logoMargins != null && (uiSettings.logoMarginLeft != logoMargins!![0] || uiSettings.logoMarginTop != logoMargins!![1] || uiSettings.logoMarginRight != logoMargins!![2] || uiSettings.logoMarginBottom != logoMargins!![3])) {
+        if (logoMargins != null &&
+            (
+                uiSettings.logoMarginLeft != logoMargins!![0] || uiSettings.logoMarginTop != logoMargins!![1] ||
+                    uiSettings.logoMarginRight != logoMargins!![2] ||
+                    uiSettings.logoMarginBottom != logoMargins!![3]
+            )
+        ) {
             uiSettings.setLogoMargins(
-                logoMargins!![0], logoMargins!![1], logoMargins!![2], logoMargins!![3]
+                logoMargins!![0],
+                logoMargins!![1],
+                logoMargins!![2],
+                logoMargins!![3],
             )
         }
 
@@ -1101,10 +1156,22 @@ open class MLRNMapView(
             uiSettings.compassGravity = compassGravity!!
         }
 
-        if (compassMargins != null && (uiSettings.compassMarginLeft != compassMargins!![0] || uiSettings.compassMarginTop != compassMargins!![1] || uiSettings.compassMarginRight != compassMargins!![2] || uiSettings.compassMarginBottom != compassMargins!![3])) {
-            uiSettings.setCompassMargins(
-                compassMargins!![0], compassMargins!![1], compassMargins!![2], compassMargins!![3]
+        if (compassMargins != null &&
+            (
+                uiSettings.compassMarginLeft != compassMargins!![0] || uiSettings.compassMarginTop != compassMargins!![1] ||
+                    uiSettings.compassMarginRight != compassMargins!![2] ||
+                    uiSettings.compassMarginBottom != compassMargins!![3]
             )
+        ) {
+            uiSettings.setCompassMargins(
+                compassMargins!![0],
+                compassMargins!![1],
+                compassMargins!![2],
+                compassMargins!![3],
+            )
+        }
+        if (compassHiddenFacingNorth != null) {
+            uiSettings.setCompassFadeFacingNorth(compassHiddenFacingNorth!!)
         }
     }
 
@@ -1142,12 +1209,11 @@ open class MLRNMapView(
                 left = top
             }
 
-
             return doubleArrayOf(
                 left * displayDensity,
                 top * displayDensity,
                 right * displayDensity,
-                bottom * displayDensity
+                bottom * displayDensity,
             )
         }
 
@@ -1163,40 +1229,49 @@ open class MLRNMapView(
         val left = padding[0]
 
         mapLibreMap!!.setPadding(
-            left.toInt(), top.toInt(), right.toInt(), bottom.toInt()
+            left.toInt(),
+            top.toInt(),
+            right.toInt(),
+            bottom.toInt(),
         )
     }
 
     private fun setLifecycleListeners() {
         val reactContext = context as ReactContext
 
-        lifeCycleListener = object : LifecycleEventListener {
-            override fun onHostResume() {
-                onResume()
-            }
+        lifeCycleListener =
+            object : LifecycleEventListener {
+                override fun onHostResume() {
+                    onResume()
+                }
 
-            override fun onHostPause() {
-                onPause()
-            }
+                override fun onHostPause() {
+                    onPause()
+                }
 
-            override fun onHostDestroy() {
-                dispose()
+                override fun onHostDestroy() {
+                    dispose()
+                }
             }
-        }
 
         reactContext.addLifecycleEventListener(lifeCycleListener)
     }
 
     private fun makeViewState(isAnimated: Boolean?): WritableMap {
         val position = mapLibreMap!!.cameraPosition
-        val viewState: WritableMap = WritableNativeMap()
+        val viewState: WritableMap = Arguments.createMap()
 
         if (position.target == null) {
             return viewState
         }
 
-        viewState.putDouble("longitude", position.target!!.longitude)
-        viewState.putDouble("latitude", position.target!!.latitude)
+        viewState.putArray(
+            "center",
+            Arguments.createArray().apply {
+                pushDouble(position.target!!.longitude)
+                pushDouble(position.target!!.latitude)
+            },
+        )
 
         viewState.putDouble("zoom", position.zoom)
         viewState.putDouble("bearing", position.bearing)
@@ -1205,18 +1280,22 @@ open class MLRNMapView(
         try {
             val visibleRegion = mapLibreMap!!.projection.visibleRegion
             viewState.putArray(
-                "bounds", GeoJSONUtils.fromLatLngBounds(visibleRegion.latLngBounds)
+                "bounds",
+                GeoJSONUtils.fromLatLngBounds(visibleRegion.latLngBounds),
             )
         } catch (ex: Exception) {
             Logger.e(
-                LOG_TAG, String.format(
-                    "An error occurred while attempting to make the region: %s", ex.message
-                )
+                LOG_TAG,
+                String.format(
+                    "An error occurred while attempting to make the region: %s",
+                    ex.message,
+                ),
             )
         }
 
         viewState.putBoolean(
-            "animated", isAnimated ?: cameraChangeTracker.isAnimated
+            "animated",
+            isAnimated ?: cameraChangeTracker.isAnimated,
         )
         viewState.putBoolean("userInteraction", cameraChangeTracker.isUserInteraction)
 
@@ -1224,9 +1303,13 @@ open class MLRNMapView(
     }
 
     fun sendRegionChangeEvent(isAnimated: Boolean) {
-        val event = MapChangeEvent(
-            surfaceId, id, "onRegionDidChange", makeViewState(isAnimated)
-        )
+        val event =
+            MapChangeEvent(
+                surfaceId,
+                id,
+                "onRegionDidChange",
+                makeViewState(isAnimated),
+            )
         eventDispatcher?.dispatchEvent(event)
 
         cameraChangeTracker.setReason(CameraChangeTracker.EMPTY)
@@ -1252,13 +1335,13 @@ open class MLRNMapView(
         }
     }
 
-    private val allTouchableSources: MutableList<MLRNSource<*>>
+    private val pressableSources: MutableList<MLRNPressableSource<*>>
         get() {
-            val sources: MutableList<MLRNSource<*>> = ArrayList()
+            val sources: MutableList<MLRNPressableSource<*>> = ArrayList()
 
             for (key in this.sources.keys) {
                 val source = this.sources[key]
-                if (source != null && source.hasPressListener()) {
+                if (source != null && source is MLRNPressableSource && source.hasOnPress) {
                     sources.add(source)
                 }
             }
@@ -1266,7 +1349,7 @@ open class MLRNMapView(
             return sources
         }
 
-    private fun getTouchableSourceWithHighestZIndex(sources: MutableList<MLRNSource<*>>?): MLRNSource<*>? {
+    private fun getPressableSourceWithHighestZIndex(sources: MutableList<MLRNPressableSource<*>>?): MLRNPressableSource<*>? {
         if (sources == null || sources.isEmpty()) {
             return null
         }
@@ -1275,7 +1358,7 @@ open class MLRNMapView(
             return sources[0]
         }
 
-        val layerToSourceMap: MutableMap<String?, MLRNSource<*>?> = HashMap()
+        val layerToSourceMap: MutableMap<String?, MLRNPressableSource<*>?> = HashMap()
         for (source in sources) {
             val layerIDs = source.getLayerIDs()
 
@@ -1284,11 +1367,10 @@ open class MLRNMapView(
             }
         }
 
-        val mapboxLayers = mapLibreMap!!.style!!.getLayers()
-        for (i in mapboxLayers.indices.reversed()) {
-            val mapboxLayer = mapboxLayers[i]
+        val layers = mapLibreMap!!.style!!.getLayers()
+        for (i in layers.indices.reversed()) {
+            val layerID = layers[i].getId()
 
-            val layerID = mapboxLayer.getId()
             if (layerToSourceMap.containsKey(layerID)) {
                 return layerToSourceMap[layerID]
             }
@@ -1302,12 +1384,16 @@ open class MLRNMapView(
         cameraChangeTracker.setReason(CameraChangeTracker.EMPTY)
     }
 
-    private fun handleMapChangedEvent(eventName: String, withViewState: Boolean? = null) {
-        val event = if (withViewState == true) {
-            MapChangeEvent(surfaceId, id, eventName, makeViewState(null))
-        } else {
-            MapChangeEvent(surfaceId, id, eventName)
-        }
+    private fun handleMapChangedEvent(
+        eventName: String,
+        withViewState: Boolean? = null,
+    ) {
+        val event =
+            if (withViewState == true) {
+                MapChangeEvent(surfaceId, id, eventName, makeViewState(null))
+            } else {
+                MapChangeEvent(surfaceId, id, eventName)
+            }
 
         eventDispatcher?.dispatchEvent(event)
     }
@@ -1317,9 +1403,11 @@ open class MLRNMapView(
      */
     private fun setUpImage(loadedStyle: Style) {
         loadedStyle.addImage(
-            "MARKER_IMAGE_ID", BitmapFactory.decodeResource(
-                this.resources, R.drawable.red_marker
-            )
+            "MARKER_IMAGE_ID",
+            BitmapFactory.decodeResource(
+                this.resources,
+                R.drawable.red_marker,
+            ),
         )
     }
 

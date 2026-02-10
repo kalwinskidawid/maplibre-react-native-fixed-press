@@ -1,10 +1,10 @@
 import type { BaseProps } from "../../types/BaseProps";
 interface UserLocationPuckProps extends BaseProps {
-    sourceID: string;
+    source: string;
     accuracy?: number;
     heading?: number;
-    belowLayerID?: string;
+    beforeId?: string;
 }
-export declare const UserLocationPuck: import("react").MemoExoticComponent<({ sourceID, accuracy, heading }: UserLocationPuckProps) => import("react/jsx-runtime").JSX.Element>;
+export declare const UserLocationPuck: import("react").MemoExoticComponent<({ source, accuracy, heading }: UserLocationPuckProps) => import("react/jsx-runtime").JSX.Element>;
 export {};
 //# sourceMappingURL=UserLocationPuck.d.ts.map

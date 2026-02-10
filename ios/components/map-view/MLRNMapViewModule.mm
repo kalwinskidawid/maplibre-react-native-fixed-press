@@ -5,6 +5,7 @@
 #import "MLRNMapViewComponentView.h"
 #import "MLRNMapViewManager.h"
 #import "MLRNUtils.h"
+#import "MLRNViewModuleUtils.h"
 
 @implementation MLRNMapViewModule
 
@@ -23,26 +24,15 @@
               block:(void (^)(MLRNMapView *))block
              reject:(RCTPromiseRejectBlock)reject
          methodName:(NSString *)methodName {
-  [self.viewRegistry_DEPRECATED addUIBlock:^(RCTViewRegistry *viewRegistry) {
-    UIView *view =
-        [self.viewRegistry_DEPRECATED viewForReactTag:[NSNumber numberWithInteger:reactTag]];
-
-    if ([view isKindOfClass:[MLRNMapViewComponentView class]]) {
-      MLRNMapViewComponentView *componentView = (MLRNMapViewComponentView *)view;
-
-      if ([componentView.contentView isKindOfClass:[MLRNMapView class]]) {
-        MLRNMapView *mapView = (MLRNMapView *)componentView.contentView;
-
-        block(mapView);
-        return;
-      }
-    }
-
-    reject(methodName,
-           [NSString stringWithFormat:@"Invalid `reactTag` %@, could not find MLRNMapView",
-                                      [NSNumber numberWithInteger:reactTag]],
-           nil);
-  }];
+  [MLRNViewModuleUtils withView:self.viewRegistry_DEPRECATED
+                       reactTag:reactTag
+             componentViewClass:[MLRNMapViewComponentView class]
+               contentViewClass:[MLRNMapView class]
+                          block:^(UIView *view) {
+                            block((MLRNMapView *)view);
+                          }
+                         reject:reject
+                     methodName:methodName];
 }
 
 - (void)getCenter:(NSInteger)reactTag
@@ -116,7 +106,7 @@
         resolve:(RCTPromiseResolveBlock)resolve
          reject:(RCTPromiseRejectBlock)reject {
   CLLocationCoordinate2D coordinate =
-      CLLocationCoordinate2DMake([lngLat[0] doubleValue], [lngLat[1] doubleValue]);
+      CLLocationCoordinate2DMake([lngLat[1] doubleValue], [lngLat[0] doubleValue]);
 
   [self withMapView:reactTag
               block:^(MLRNMapView *view) {
@@ -143,16 +133,16 @@
          methodName:@"unproject"];
 }
 
-- (void)takeSnap:(NSInteger)reactTag
-     writeToDisk:(BOOL)writeToDisk
-         resolve:(RCTPromiseResolveBlock)resolve
-          reject:(RCTPromiseRejectBlock)reject {
+- (void)createStaticMapImage:(NSInteger)reactTag
+                      output:(NSString *)output
+                     resolve:(RCTPromiseResolveBlock)resolve
+                      reject:(RCTPromiseRejectBlock)reject {
   [self withMapView:reactTag
               block:^(MLRNMapView *view) {
-                [MLRNMapViewManager takeSnap:view
-                                 writeToDisk:writeToDisk
-                                     resolve:resolve
-                                      reject:reject];
+                [MLRNMapViewManager createStaticMapImage:view
+                                             writeToDisk:[output isEqual:@"file"]
+                                                 resolve:resolve
+                                                  reject:reject];
               }
              reject:reject
          methodName:@"takeSnap"];
@@ -238,16 +228,16 @@
 
 - (void)setSourceVisibility:(NSInteger)reactTag
                     visible:(BOOL)visible
-                   sourceId:(nonnull NSString *)sourceId
-              sourceLayerId:(NSString *)sourceLayerId
+                     source:(nonnull NSString *)source
+                sourceLayer:(nullable NSString *)sourceLayer
                     resolve:(RCTPromiseResolveBlock)resolve
                      reject:(RCTPromiseRejectBlock)reject {
   [self withMapView:reactTag
               block:^(MLRNMapView *view) {
                 [MLRNMapViewManager setSourceVisibility:view
                                                 visible:visible
-                                               sourceId:sourceId
-                                          sourceLayerId:sourceLayerId
+                                               sourceId:source
+                                          sourceLayerId:sourceLayer
                                                 resolve:resolve
                                                  reject:reject];
               }

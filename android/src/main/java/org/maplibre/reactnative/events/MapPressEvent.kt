@@ -7,23 +7,24 @@ import com.facebook.react.uimanager.events.Event
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.reactnative.utils.GeoJSONUtils
 
-class MapPressEvent(
+open class MapPressEvent(
     surfaceId: Int,
     viewId: Int,
     private val internalEventName: String,
     private val latLng: LatLng,
     private val screenPoint: PointF,
-
-    ) : Event<MapPressEvent>(surfaceId, viewId) {
+) : Event<MapPressEvent>(surfaceId, viewId) {
     override fun getEventName() = internalEventName
 
-    override fun getEventData(): WritableMap {
-        return Arguments.createMap().apply {
+    override fun getEventData(): WritableMap =
+        Arguments.createMap().apply {
             putArray("lngLat", GeoJSONUtils.fromLatLng(latLng))
-            putArray("point", Arguments.createArray().apply {
-                pushDouble(screenPoint.x.toDouble())
-                pushDouble(screenPoint.y.toDouble())
-            })
+            putArray(
+                "point",
+                Arguments.createArray().apply {
+                    pushDouble(screenPoint.x.toDouble())
+                    pushDouble(screenPoint.y.toDouble())
+                },
+            )
         }
-    }
 }

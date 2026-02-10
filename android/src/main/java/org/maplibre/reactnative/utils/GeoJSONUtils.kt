@@ -4,8 +4,6 @@ import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.bridge.WritableArray
 import com.facebook.react.bridge.WritableMap
-import com.facebook.react.bridge.WritableNativeArray
-import com.facebook.react.bridge.WritableNativeMap
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.geometry.LatLngQuad
@@ -49,24 +47,60 @@ object GeoJSONUtils {
         return map
     }
 
-    fun fromGeometry(geometry: Geometry): WritableMap? {
-        val type = geometry.type()
+    fun fromFeatureCollection(featureCollection: FeatureCollection): WritableMap {
+        val map = Arguments.createMap()
+        map.putString("type", "FeatureCollection")
 
-        return when (type) {
-            "Point" -> fromPoint(geometry as Point)
-            "LineString" -> fromLineString(geometry as LineString)
-            "Polygon" -> fromPolygon(geometry as Polygon)
-            "MultiPoint" -> fromMultiPoint(geometry as MultiPoint)
-            "MultiLineString" -> fromMultiLineString(geometry as MultiLineString)
-            "MultiPolygon" -> fromMultiPolygon(geometry as MultiPolygon)
-            "GeometryCollection" -> fromGeometryCollection(geometry as GeometryCollection)
+        map.putArray("features", fromFeatureList(featureCollection.features() ?: emptyList()))
+
+        return map
+    }
+
+    fun fromFeatureList(featureList: List<Feature>): WritableArray {
+        val featuresArray = Arguments.createArray()
+        featureList.forEach { feature ->
+            featuresArray.pushMap(fromFeature(feature))
+        }
+
+        return featuresArray
+    }
+
+    fun fromGeometry(geometry: Geometry): WritableMap? =
+        when (val type = geometry.type()) {
+            "Point" -> {
+                fromPoint(geometry as Point)
+            }
+
+            "LineString" -> {
+                fromLineString(geometry as LineString)
+            }
+
+            "Polygon" -> {
+                fromPolygon(geometry as Polygon)
+            }
+
+            "MultiPoint" -> {
+                fromMultiPoint(geometry as MultiPoint)
+            }
+
+            "MultiLineString" -> {
+                fromMultiLineString(geometry as MultiLineString)
+            }
+
+            "MultiPolygon" -> {
+                fromMultiPolygon(geometry as MultiPolygon)
+            }
+
+            "GeometryCollection" -> {
+                fromGeometryCollection(geometry as GeometryCollection)
+            }
+
             else -> {
                 Logger.w(LOG_TAG, "GeoJSONUtils.fromGeometry unsupported type: \"$type\"")
 
                 null
             }
         }
-    }
 
     fun fromPoint(point: Point?): WritableMap {
         val map = Arguments.createMap()
@@ -117,16 +151,18 @@ object GeoJSONUtils {
         map.putArray(
             "geometries",
             Arguments.fromList(
-                geometryCollection.geometries().stream()
+                geometryCollection
+                    .geometries()
+                    .stream()
                     .map<WritableMap?> { obj: Geometry -> fromGeometry(obj) }
-                    .collect(Collectors.toList())))
+                    .collect(Collectors.toList()),
+            ),
+        )
 
         return map
     }
 
-    fun getCoordinates(point: Point?): WritableArray {
-        return Arguments.fromArray(pointToDoubleArray(point))
-    }
+    fun getCoordinates(point: Point?): WritableArray = Arguments.fromArray(pointToDoubleArray(point))
 
     fun getCoordinates(lineString: LineString): WritableArray {
         val array = Arguments.createArray()
@@ -209,26 +245,37 @@ object GeoJSONUtils {
     }
 
     @JvmStatic
-    fun toPointFeature(latLng: LatLng, properties: WritableMap?): WritableMap {
-        val map: WritableMap = WritableNativeMap()
-        map.putString("type", "Feature")
-        map.putMap("geometry", toPointGeometry(latLng))
-        map.putMap("properties", properties)
+    fun toPointFeature(
+        latLng: LatLng,
+        properties: WritableMap?,
+    ): WritableMap {
+        val map: WritableMap =
+            Arguments.createMap().apply {
+                putString("type", "Feature")
+                putMap("geometry", toPointGeometry(latLng))
+                putMap("properties", properties)
+            }
+
         return map
     }
 
     fun toPointGeometry(latLng: LatLng): WritableMap {
-        val geometry: WritableMap = WritableNativeMap()
-        geometry.putString("type", "Point")
-        geometry.putArray("coordinates", fromLatLng(latLng))
+        val geometry: WritableMap =
+            Arguments.createMap().apply {
+                putString("type", "Point")
+                putArray("coordinates", fromLatLng(latLng))
+            }
+
         return geometry
     }
 
     @JvmStatic
     fun fromLatLng(latLng: LatLng): WritableArray {
-        val coordinates: WritableArray = WritableNativeArray()
-        coordinates.pushDouble(latLng.longitude)
-        coordinates.pushDouble(latLng.latitude)
+        val coordinates: WritableArray =
+            Arguments.createArray().apply {
+                pushDouble(latLng.longitude)
+                pushDouble(latLng.latitude)
+            }
 
         return coordinates
     }
@@ -250,10 +297,8 @@ object GeoJSONUtils {
 
     @JvmStatic
     fun toPointGeometry(featureJSONString: String): Point? {
-        val feature = Feature.fromJson(featureJSONString)
-        if (feature == null) {
-            return null
-        }
+        val feature = Feature.fromJson(featureJSONString) ?: return null
+
         return feature.geometry() as Point?
     }
 
@@ -290,11 +335,14 @@ object GeoJSONUtils {
     fun toLatLngBounds(array: ReadableArray?): LatLngBounds? {
         if (array != null && array.size() == 4) {
             return LatLngBounds.from(
-                array.getDouble(3), array.getDouble(2), array.getDouble(1), array.getDouble(0)
+                array.getDouble(3),
+                array.getDouble(2),
+                array.getDouble(1),
+                array.getDouble(0),
             )
         }
 
-        return null;
+        return null
     }
 
     @JvmStatic
@@ -307,7 +355,7 @@ object GeoJSONUtils {
             toLatLng(array.getArray(0))!!,
             toLatLng(array.getArray(1))!!,
             toLatLng(array.getArray(2))!!,
-            toLatLng(array.getArray(3))!!
+            toLatLng(array.getArray(3))!!,
         )
     }
 

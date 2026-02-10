@@ -37,17 +37,17 @@
           resolve:(RCTPromiseResolveBlock _Nonnull)resolve
            reject:(RCTPromiseRejectBlock _Nonnull)reject;
 
-+ (void)takeSnap:(MLRNMapView *_Nonnull)view
-     writeToDisk:(BOOL)writeToDisk
-         resolve:(RCTPromiseResolveBlock _Nonnull)resolve
-          reject:(RCTPromiseRejectBlock _Nonnull)reject;
++ (void)createStaticMapImage:(MLRNMapView *_Nonnull)view
+                 writeToDisk:(BOOL)writeToDisk
+                     resolve:(RCTPromiseResolveBlock _Nonnull)resolve
+                      reject:(RCTPromiseRejectBlock _Nonnull)reject;
 
 + (void)queryRenderedFeaturesWithPoint:(MLRNMapView *_Nonnull)view
                                  point:(CGPoint)point
-                                   layerIds:(NSSet *_Nonnull)layerIds
-                                  predicate:(NSPredicate *_Nonnull)predicate
-                                    resolve:(RCTPromiseResolveBlock _Nonnull)resolve
-                                     reject:(RCTPromiseRejectBlock _Nonnull)reject;
+                              layerIds:(NSSet *_Nonnull)layerIds
+                             predicate:(NSPredicate *_Nonnull)predicate
+                               resolve:(RCTPromiseResolveBlock _Nonnull)resolve
+                                reject:(RCTPromiseRejectBlock _Nonnull)reject;
 
 + (void)queryRenderedFeaturesWithRect:(MLRNMapView *_Nonnull)view
                                  rect:(CGRect)rect

@@ -1,9 +1,4 @@
-export * from "./MLRNModule";
-
 export {
-  Camera,
-  type CameraProps,
-  type CameraRef,
   type CameraOptions,
   type CameraEasing,
   type CameraAnimationOptions,
@@ -15,54 +10,152 @@ export {
   type InitialViewState,
   type TrackUserLocation,
   type TrackUserLocationChangeEvent,
+  type CameraRef,
+  type CameraProps,
+  Camera,
 } from "./components/camera/Camera";
 
 export {
-  MapView,
-  type MapViewProps,
-  type MapViewRef,
   type ViewState,
   type ViewStateChangeEvent,
-} from "./components/map-view/MapView";
+  type MapRef,
+  type MapProps,
+  Map,
+} from "./components/map/Map";
 
-export { PointAnnotation } from "./components/annotations/PointAnnotation";
-export type { PointAnnotationRef } from "./components/annotations/PointAnnotation";
-export { Annotation } from "./components/annotations/Annotation";
-export { Callout } from "./components/annotations/Callout";
+export {
+  ViewAnnotation,
+  type ViewAnnotationProps,
+  type ViewAnnotationRef,
+  type ViewAnnotationEvent,
+} from "./components/annotations/view-annotation/ViewAnnotation";
+
+export {
+  type LayerAnnotationProps,
+  LayerAnnotation,
+} from "./components/annotations/LayerAnnotation";
+
+export {
+  Callout,
+  type CalloutProps,
+} from "./components/annotations/callout/Callout";
 
 export { UserLocation } from "./components/user-location/UserLocation";
 export { NativeUserLocation } from "./components/user-location/NativeUserLocation";
 export { useCurrentPosition } from "./hooks/useCurrentPosition";
 
-export { VectorSource } from "./components/sources/VectorSource";
-export { ShapeSource } from "./components/sources/ShapeSource";
-export type { ShapeSourceRef } from "./components/sources/ShapeSource";
-export { RasterSource } from "./components/sources/RasterSource";
-export { ImageSource } from "./components/sources/ImageSource";
-export { Images } from "./components/Images";
-export { FillLayer } from "./components/layers/FillLayer";
-export { FillExtrusionLayer } from "./components/layers/FillExtrusionLayer";
-export { HeatmapLayer } from "./components/layers/HeatmapLayer";
-export { LineLayer } from "./components/layers/LineLayer";
-export { CircleLayer } from "./components/layers/CircleLayer";
-export { SymbolLayer } from "./components/layers/SymbolLayer";
-export { RasterLayer } from "./components/layers/RasterLayer";
-export { BackgroundLayer } from "./components/layers/BackgroundLayer";
-export { MarkerView } from "./components/annotations/MarkerView";
+export {
+  type ImageSourceProps,
+  ImageSource,
+} from "./components/sources/image-source/ImageSource";
+
+export {
+  type GeoJSONSourceRef,
+  type GeoJSONSourceProps,
+  GeoJSONSource,
+} from "./components/sources/geojson-source/GeoJSONSource";
+
+export {
+  type RasterSourceProps,
+  RasterSource,
+} from "./components/sources/raster-source/RasterSource";
+
+export {
+  type VectorSourceRef,
+  type VectorSourceProps,
+  VectorSource,
+} from "./components/sources/vector-source/VectorSource";
+
+export {
+  Layer,
+  type LayerProps,
+  type SourceLayerProps,
+  type FillLayerProps,
+  type LineLayerProps,
+  type SymbolLayerProps,
+  type CircleLayerProps,
+  type HeatmapLayerProps,
+  type FillExtrusionLayerProps,
+  type RasterLayerProps,
+  type BackgroundLayerProps,
+} from "./components/layer/Layer";
+
+export type {
+  // Layers
+  LayerSpecification,
+  FillLayerSpecification,
+  LineLayerSpecification,
+  SymbolLayerSpecification,
+  CircleLayerSpecification,
+  HeatmapLayerSpecification,
+  FillExtrusionLayerSpecification,
+  RasterLayerSpecification,
+  HillshadeLayerSpecification,
+  BackgroundLayerSpecification,
+
+  // Sources
+  SourceSpecification,
+  VectorSourceSpecification,
+  RasterSourceSpecification,
+  RasterDEMSourceSpecification,
+  GeoJSONSourceSpecification,
+  VideoSourceSpecification,
+  ImageSourceSpecification,
+
+  // Filter
+  FilterSpecification,
+
+  // Style
+  StyleSpecification,
+  SkySpecification,
+  LightSpecification,
+  TerrainSpecification,
+  ProjectionSpecification,
+} from "@maplibre/maplibre-gl-style-spec";
+
+export {
+  type ImageSourceWithSdf,
+  type ImageEntry,
+  type ImagesProps,
+  Images,
+} from "./components/images/Images";
+
+export {
+  Marker,
+  type MarkerProps,
+} from "./components/annotations/marker/Marker";
 
 export {
   LocationManager,
   type GeolocationPosition,
 } from "./modules/location/LocationManager";
 
-export { OfflineManager } from "./modules/offline/OfflineManager";
-export type { OfflinePackError } from "./modules/offline/OfflineManager";
-export type { OfflinePackStatus } from "./modules/offline/OfflinePack";
-export { OfflinePack } from "./modules/offline/OfflinePack";
-export { OfflineCreatePackOptions } from "./modules/offline/OfflineCreatePackOptions";
-export { SnapshotManager } from "./modules/snapshot/SnapshotManager";
-export type { SnapshotInputOptions } from "./modules/snapshot/SnapshotOptions";
+export { LogManager, type LogLevel } from "./modules/log/LogManager";
 
+export { NetworkManager } from "./modules/network/NetworkManager";
+
+export {
+  OfflineManager,
+  type OfflinePackCreateOptions,
+  type OfflinePackDownloadState,
+  type OfflinePackError,
+  type OfflinePackProgressListener,
+  type OfflinePackErrorListener,
+} from "./modules/offline/OfflineManager";
+export {
+  OfflinePack,
+  type OfflinePackStatus,
+} from "./modules/offline/OfflinePack";
+
+export {
+  StaticMapImageManager,
+  type StaticMapOptions,
+  type StaticMapCenterOptions,
+  type StaticMapBoundsOptions,
+  type StaticMapCreateOptions,
+} from "./modules/static-map/StaticMapManager";
+
+export type { Anchor } from "./types/Anchor";
 export type { LngLat } from "./types/LngLat";
 export type { LngLatBounds } from "./types/LngLatBounds";
 export type {
@@ -80,10 +173,10 @@ export type {
 } from "./types/MapLibreRNStyles";
 export type { PixelPoint } from "./types/PixelPoint";
 export type { PixelPointBounds } from "./types/PixelPointBounds";
-export type { PressEvent, PressEventWithFeatures } from "./types/PressEvent";
+export type { PressEvent } from "./types/PressEvent";
+export type { PressEventWithFeatures } from "./types/PressEventWithFeatures";
 export type { ViewPadding } from "./types/ViewPadding";
 
 export { Animated } from "./utils/animated/Animated";
-export { LogManager, type LogLevel } from "./modules/log/LogManager";
 
 export type { MapLibrePluginProps } from "./plugin/MapLibrePluginProps";
