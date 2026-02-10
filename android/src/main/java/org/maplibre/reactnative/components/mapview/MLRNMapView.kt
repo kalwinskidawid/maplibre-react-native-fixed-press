@@ -620,10 +620,11 @@ open class MLRNMapView(
     fun onMarkerClick(symbol: Symbol) {
         pointAnnotationClicked = true
         val selectedMarkerID = symbol.id
+        val currentActiveId = activePointAnnotationAnnotationId
 
         // If clicking the same point that is already active, just emit select event again
-        if (selectedMarkerID == activePointAnnotationAnnotationId) {
-            val activeAnnotation = getPointAnnotationByMarkerID(activePointAnnotationAnnotationId)
+        if (selectedMarkerID == currentActiveId) {
+            val activeAnnotation = getPointAnnotationByMarkerID(currentActiveId)
             if (activeAnnotation != null) {
                 activeAnnotation.onSelect(true)
             }
@@ -637,11 +638,11 @@ open class MLRNMapView(
             val pointAnnotation = pointAnnotations[key]
             val currentAnnotationId = pointAnnotation!!.annotationId
 
-            if (activePointAnnotationAnnotationId == currentAnnotationId) {
+            if (currentActiveId == currentAnnotationId) {
                 activeAnnotation = pointAnnotation
             }
 
-            if (selectedMarkerID == currentAnnotationId && activePointAnnotationAnnotationId != currentAnnotationId) {
+            if (selectedMarkerID == currentAnnotationId && currentActiveId != currentAnnotationId) {
                 nextActiveAnnotation = pointAnnotation
             }
         }
